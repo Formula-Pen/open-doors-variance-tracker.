@@ -13,6 +13,9 @@ tr.t td{background:var(--sage);font-weight:bold}tr.v td{background:var(--gold);f
 input.ov{box-shadow:inset 0 -3px var(--org)}input.al{background:var(--org)!important}.x{padding:2px 7px}
 textarea{width:100%;min-height:50px;margin:2px 0 8px}label{font-size:12px;color:#587}.hint{color:#587;font-size:12px;margin:10px 0}
 button:disabled{opacity:.4}.empty{padding:24px;text-align:center;color:#587}#pp{padding:10px;background:#f2f8f4}
+table th:nth-child(n+3),table td:nth-child(n+3){border-left:5px solid #fff}
+table th,table td{padding:3px 6px}
+th small{display:block;margin-top:2px}
 </style></head><body>
 <header><h1>Open Doors Staff Variance Tracker</h1></header><main>
 <div class="bar"><select id="fp"></select><select id="fs"></select><button class="p" id="addP">+ Period</button><button id="edP">Edit period</button><button class="p" id="addS">+ Staff</button><label class="btn p">Import Excel<input type="file" id="im" accept=".xlsx" hidden></label><button id="un">↶ Undo</button><button id="re">↷ Redo</button></div>
@@ -33,9 +36,9 @@ return new Blob([...parts,...cd,new Uint8Array(z.buffer)],{type:'application/vnd
 const X=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const XF=(f,l,n,b,a)=>`<xf numFmtId="${n}" fontId="${f}" fillId="${l}" borderId="${b||0}" xfId="0" applyFont="1" applyFill="1" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment vertical="center"${a||''}/></xf>`,
 CE=' horizontal="center"',LE=' horizontal="left"',
-ST={title:[1,1],h:[2,2],'':[3,8],con:[3,8],dt:[0,0],tot:[4,5],var:[6,7],note:[9,9]},
+ST={title:[1,1],h:[2,2],'':[3,8],con:[3,8],dt:[0,0],tot:[4,5],var:[6,7],note:[9,9],sp:[0,0]},
 FL=c=>`<fill><patternFill patternType="solid"><fgColor rgb="FF${c}"/></patternFill></fill>`;
-function xlsx(g,name){const w=Math.max(...g.map(r=>r.c.length)),L=i=>String.fromCharCode(65+i),mg=[],tw=36+18*(w-1),HT={title:54,h:26,dt:22,tot:28,var:28,'':24,con:24};
+function xlsx(g,name){const w=Math.max(...g.map(r=>r.c.length)),L=i=>String.fromCharCode(65+i),mg=[],tw=36+24*(w-1),HT={title:54,h:26,dt:22,tot:28,var:28,'':24,con:24,sp:16};
 const rows=g.map((r,i)=>{const n=r.s=='note'?1:w;let o='';
 if(r.s=='title'||r.s=='note')mg.push(`<mergeCell ref="A${i+1}:${L(w-1)}${i+1}"/>`);
 for(let j=0;j<n;j++){const v=r.c[j],e=v===''||v==null,ref=L(j)+(i+1),[a,b]=ST[r.s];let s=typeof v=='number'||(e&&j)?b:a;if(j&&r.s=='h')s=10;if(j&&r.s=='dt')s=11;
@@ -48,25 +51,29 @@ return zip([['[Content_Types].xml',H+'<Types xmlns="http://schemas.openxmlformat
 ['xl/workbook.xml',H+`<workbook ${NS} xmlns:r="${R}"><sheets><sheet name="${sn}" sheetId="1" r:id="rId1"/></sheets></workbook>`],
 ['xl/_rels/workbook.xml.rels',H+`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${R}/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="${R}/styles" Target="styles.xml"/></Relationships>`],
 ['xl/styles.xml',H+`<styleSheet ${NS}><numFmts count="0"/><fonts count="4"><font><sz val="12"/><name val="Arial"/></font><font><b/><sz val="12"/><color rgb="FFFFFFFF"/><name val="Arial"/></font><font><b/><sz val="12"/><name val="Arial"/></font><font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Arial"/></font></fonts><fills count="6"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>${['247F80','1A9A9A','B1D5BB','EDB32E'].map(FL).join('')}</fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border>${['left','right','top','bottom'].map(k=>`<${k} style="thin"><color rgb="FF9DB5B1"/></${k}>`).join('')}<diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="12">${[XF(0,0,0),XF(3,2,0,0,CE+' wrapText="1"'),XF(1,3,0,0,LE),XF(0,0,0,1,LE),XF(2,4,0,0,LE),XF(2,4,2,0,CE),XF(2,5,0,0,LE),XF(2,5,2,0,CE),XF(0,0,2,1,CE),XF(0,0,0,0,LE+' wrapText="1"'),XF(1,3,0,0,CE),XF(0,0,0,0,CE)].join('')}</cellXfs></styleSheet>`],
-['xl/worksheets/sheet1.xml',H+`<worksheet ${NS}><sheetViews><sheetView showGridLines="0" workbookViewId="0"/></sheetViews><cols><col min="1" max="1" width="36" customWidth="1"/><col min="2" max="${w}" width="18" customWidth="1"/></cols><sheetData>${rows}</sheetData><mergeCells count="${mg.length}">${mg.join('')}</mergeCells></worksheet>`]])}
+['xl/worksheets/sheet1.xml',H+`<worksheet ${NS}><sheetViews><sheetView showGridLines="0" workbookViewId="0"/></sheetViews><cols><col min="1" max="1" width="36" customWidth="1"/><col min="2" max="${w}" width="24" customWidth="1"/></cols><sheetData>${rows}</sheetData><mergeCells count="${mg.length}">${mg.join('')}</mergeCells></worksheet>`]])}
 
-/* Image + PDF: drawn on a canvas sized exactly to the table */
+/* Image + PDF: drawn on a canvas sized exactly to the content (months stacked vertically) */
 function cv(g){const sc=2,F='Arial,Helvetica,sans-serif',c=document.createElement('canvas'),x=c.getContext('2d'),P=28,f=(w,s)=>{x.font=`${w} ${s}px ${F}`},m=t=>x.measureText(String(t)).width,
-T=g[0].c[0].split('\n'),tb=g.filter(r=>r.s!='title'&&r.s!='note'),nt=g.filter(r=>r.s=='note'),n=tb[0].c.length-1;
-f('bold',17);let lw=Math.max(...tb.map(r=>m(r.c[0])))+44;
-const cw=Math.max(150,...tb.filter(r=>r.s=='h'||r.s=='dt').flatMap(r=>r.c.slice(1).map(t=>m(t)+36)));
-f('bold',22);const tw=Math.max(...T.map(m))+60;if(lw+n*cw<tw)lw=tw-n*cw;const W=lw+n*cw;
-f('normal',15);const nl=nt.flatMap(r=>{const o=[];let u='';for(const w of r.c[0].split(/\s+/)){if(u&&m(u+' '+w)>W-12){o.push(u);u=w}else u=u?u+' '+w:w}o.push(u);return o});
-const RH={h:46,dt:36,tot:48,var:48},th=T.length*30+28,H=P*2+th+tb.reduce((a,r)=>a+(RH[r.s]||42),0)+(nl.length?nl.length*24+24:0);
+T=g[0].c[0].split('\n'),rs=g.slice(1);
+f('bold',17);const lw=Math.max(...rs.filter(r=>r.s!='note'&&r.s!='sp').map(r=>m(r.c[0])))+44;
+let cw=Math.max(200,...rs.filter(r=>r.s=='h'||r.s=='dt').map(r=>m(r.c[1])+36));
+f('bold',22);const tw=Math.max(...T.map(m))+60;if(lw+cw<tw)cw=tw-lw;const W=lw+cw;
+const wr=t=>{f('normal',15);const o=[];let u='';for(const w of t.split(/\s+/)){if(u&&m(u+' '+w)>W-12){o.push(u);u=w}else u=u?u+' '+w:w}o.push(u);return o};
+const RH={h:46,dt:36,tot:48,var:48,sp:24},th=T.length*30+28;
+rs.forEach(r=>{r.h=r.s=='note'?(r.l=wr(r.c[0])).length*24+16:RH[r.s]||42});
+const H=P*2+th+rs.reduce((a,r)=>a+r.h,0);
 c.width=(W+2*P)*sc;c.height=H*sc;x.scale(sc,sc);x.fillStyle='#fff';x.fillRect(0,0,W+2*P,H);x.textBaseline='middle';
 let y=P;x.fillStyle='#247F80';x.fillRect(P,y,W,th);x.fillStyle='#fff';x.textAlign='center';
 T.forEach((t,i)=>{f(i?'normal':'bold',i?18:22);x.fillText(t,P+W/2,y+(th-T.length*30)/2+i*30+15)});y+=th;
 const CL={h:['#1A9A9A','#fff'],dt:['#E6F1EA','#1b2a2a'],tot:['#B1D5BB','#1b2a2a'],var:['#EDB32E','#1b2a2a']};
-for(const r of tb){const h=RH[r.s]||42,[bg,fg]=CL[r.s]||['#fff','#1b2a2a'],b=r.s=='tot'||r.s=='var'||r.s=='h';
-for(let j=0;j<=n;j++){const x0=P+(j?lw+(j-1)*cw:0),w=j?cw:lw,v=r.c[j];x.fillStyle=bg;x.fillRect(x0,y,w,h);
+for(const r of rs){const h=r.h;
+if(r.s=='sp'){y+=h;continue}
+if(r.s=='note'){f('normal',15);x.fillStyle='#2b3b3b';x.textAlign='left';r.l.forEach((t,i)=>x.fillText(t,P+4,y+20+i*24));y+=h;continue}
+const[bg,fg]=CL[r.s]||['#fff','#1b2a2a'],b=r.s=='tot'||r.s=='var'||r.s=='h';
+for(let j=0;j<=1;j++){const x0=P+(j?lw:0),w=j?cw:lw,v=r.c[j];x.fillStyle=bg;x.fillRect(x0,y,w,h);
 if(!b){x.strokeStyle='#9DB5B1';x.lineWidth=1;x.strokeRect(x0+.5,y+.5,w-1,h-1)}
 if(v!==''&&v!=null){f(b?'bold':'normal',r.s=='dt'?15:17);x.fillStyle=fg;x.textAlign=j?'center':'left';x.fillText(typeof v=='number'?v.toFixed(2):v,j?x0+w/2:x0+16,y+h/2)}}y+=h}
-if(nl.length){y+=14;f('normal',15);x.fillStyle='#2b3b3b';x.textAlign='left';nl.forEach((t,i)=>x.fillText(t,P+4,y+12+i*24))}
 return c}
 async function pdfImg(c){const E=new TextEncoder(),parts=[],off=[],d=new Uint8Array(await(await new Promise(r=>c.toBlob(r,'image/jpeg',.95))).arrayBuffer()),w=c.width,h=c.height,pw=w*.375,ph=h*.375;let n=0;
 const add=u=>{if(typeof u=='string')u=E.encode(u);parts.push(u);n+=u.length},ob=(i,s,bin)=>{off.push(n);add(`${i} 0 obj\n${s}`);if(bin){add('stream\n');add(bin);add('\nendstream')}add('\nendobj\n')};
@@ -77,7 +84,7 @@ ob(5,`<</Type/XObject/Subtype/Image/Width ${w}/Height ${h}/ColorSpace/DeviceRGB/
 const xr=n;add(`xref\n0 6\n0000000000 65535 f \n`+off.map(k=>String(k).padStart(10,'0')+' 00000 n \n').join('')+`trailer\n<</Size 6/Root 1 0 R>>\nstartxref\n${xr}\n%%EOF`);
 return new Blob(parts,{type:'application/pdf'})}
 
-/* Excel import: reads the .xlsx locally in the browser; no data lives in this code */
+/* Excel import: reads the .xlsx locally in the browser; only months that have numbers are imported */
 const u32=(v,o)=>v.getUint32(o,true),u16=(v,o)=>v.getUint16(o,true);
 async function unz(buf){const v=new DataView(buf),u=new Uint8Array(buf),dc=new TextDecoder();let e=buf.byteLength-22;while(e>=0&&u32(v,e)!=0x06054b50)e--;if(e<0)throw 0;
 const cnt=u16(v,e+10),m={};let p=u32(v,e+16);
@@ -98,30 +105,33 @@ let H=[],R=[],last=JSON.stringify(S);
 const save=()=>{const now=JSON.stringify(S);if(now!==last){H.push(last);if(H.length>100)H.shift();R=[];last=now}try{localStorage.setItem(KEY,now)}catch(e){}},num=x=>{const n=parseFloat(x);return isNaN(n)?0:n},r2=n=>Math.round(n*100)/100,has=x=>x!==undefined&&x!=='',
 q=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'),pad=n=>String(n).padStart(2,'0'),
 iso=s=>{const m=/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(String(s).trim());if(!m)return'';const d=new Date(+m[3],m[2]-1,+m[1]);return d.getDate()==+m[1]&&d.getMonth()==m[2]-1?`${m[3]}-${pad(m[2])}-${pad(m[1])}`:''},
-fmt=i=>i?i.split('-').reverse().join('/'):'',rng=d=>fmt(d.start)+' to '+fmt(d.end);
-async function imp(file){try{const sh=await rdx(file),MO=MN.map(m=>m.slice(0,3).toLowerCase()),DEF={sep:['2026-08-20','2026-09-13'],oct:['2026-09-14','2026-10-11']},pf={},CL=i=>String.fromCharCode(65+i);let ns=0;const used=new Set();
+fmt=i=>i?i.split('-').reverse().join('/'):'',
+sd=i=>i?i.slice(8,10)+'/'+i.slice(5,7)+'/'+i.slice(2,4):'',rng=d=>sd(d.start)+' – '+sd(d.end);
+async function imp(file){try{const sh=await rdx(file),MO=MN.map(m=>m.slice(0,3).toLowerCase()),DEF={sep:['2026-08-20','2026-09-13'],oct:['2026-09-14','2026-10-11']},pf={},CL=i=>String.fromCharCode(65+i),skip=l=>/^(total hours|variance)/i.test(l);let ns=0;const used=new Set();
+const hd=c=>{for(let r=1;r<=5;r++){const cols=[];for(let j=1;j<20;j++){const t=String(c[CL(j)+r]||'').trim().slice(0,3).toLowerCase();if(MO.includes(t))cols.push([j,t])}if(cols.length)return{hr:r,cols}}return null},
+dat=(c,hr,j)=>{for(let r=hr+1;r<=60;r++){const l=String(c['A'+r]||'').trim();if(l&&!skip(l)&&typeof c[CL(j)+r]=='number')return 1}return 0},have=new Set();
+for(const s of sh){const h=hd(s.cells);if(h)h.cols.forEach(([j,mk])=>{if(dat(s.cells,h.hr,j))have.add(mk)})}
 const per=mk=>{if(mk in pf)return pf[mk];let p=S.periods.find(d=>d.label.slice(0,3).toLowerCase()==mk);
 if(!p){let[a,b]=DEF[mk]||[];if(!a){a=iso(prompt('Start date for the '+mk.toUpperCase()+' period (DD/MM/YYYY)'));b=a&&iso(prompt('End date for the '+mk.toUpperCase()+' period (DD/MM/YYYY)'))}
 if(!a||!b)return pf[mk]=null;p={id:Date.now()+S.periods.length,label:MN[MO.indexOf(mk)]+' '+b.slice(0,4),start:a,end:b};S.periods.push(p)}return pf[mk]=p};
-for(const s of sh){const c=s.cells,nm=String(c.A1||s.name).trim();let hr=0,cols=[];
-for(let r=1;r<=5&&!hr;r++){for(let j=1;j<20;j++){const t=String(c[CL(j)+r]||'').trim().slice(0,3).toLowerCase();if(MO.includes(t))cols.push([j,t])}if(cols.length)hr=r}
-if(!hr)continue;let st=S.staff.find(z=>z.name.toLowerCase()==nm.toLowerCase());
-if(!st){st={id:Date.now()+S.staff.length+ns,name:nm,rows:[],contract:{},ov:{total:{},variance:{}},notes:{}};S.staff.push(st)}ns++;
-cols=cols.map(([j,mk])=>[j,per(mk)]).filter(z=>z[1]);cols.forEach(z=>used.add(z[1].id));
+for(const s of sh){const c=s.cells,nm=String(c.A1||s.name).trim(),h=hd(c);if(!h)continue;const hr=h.hr,cols=h.cols.filter(z=>have.has(z[1])).map(([j,mk])=>[j,per(mk)]).filter(z=>z[1]);if(!cols.length)continue;
+let st=S.staff.find(z=>z.name.toLowerCase()==nm.toLowerCase());
+if(!st){st={id:Date.now()+S.staff.length+ns,name:nm,rows:[],contract:{},ov:{total:{},variance:{}},notes:{}};S.staff.push(st)}ns++;cols.forEach(z=>used.add(z[1].id));
 for(let r=1;r<=60;r++){const lab=String(c['A'+r]||'').trim();if(r<hr){if(r==1)for(const[j,p]of cols){const t=c[CL(j)+1];if(typeof t=='string'&&t.trim())st.notes[p.id]=t.trim()}continue}
-if(r==hr||!lab||/^(total hours|variance)/i.test(lab))continue;
+if(r==hr||!lab||skip(lab))continue;
 if(/^salary/i.test(lab)){for(const[j,p]of cols)if(typeof c[CL(j)+r]=='number')st.contract[p.id]=String(r2(c[CL(j)+r]));continue}
 let row=st.rows.find(z=>z.l.trim().toLowerCase()==lab.toLowerCase());if(!row){row={l:lab,v:{}};st.rows.push(row)}
 for(const[j,p]of cols){const v=c[CL(j)+r];row.v[p.id]=typeof v=='number'?String(r2(v)):''}}}
-if(!ns)return alert('No staff sheets with month headings (Sep, Oct...) were found in this file.');
+if(!ns)return alert('No months with hours were found in this file.');
 S.periods.sort((a,b)=>a.start<b.start?-1:1);fp=fs='';save();render();alert('Imported '+ns+' staff into '+used.size+' period(s). Use Undo if this is not what you expected.')}catch(e){alert('Could not read this Excel file. Please use the .xlsx version.')}}
 function calc(p){const T={},V={};let pv=0;S.periods.forEach(d=>{const k=d.id,a=r2(p.rows.reduce((s,r)=>s+num(r.v[k]),0)),ot=p.ov.total[k],t=has(ot)?num(ot):a;T[k]={v:t,o:has(ot)};
 const av=t===0?0:r2(pv+t-num(p.contract[k])),ov=p.ov.variance[k];V[k]={v:has(ov)?num(ov):av,o:has(ov)};pv=V[k].v});return{T,V}}
 function grid(p,pds){const{T,V}=calc(p),nv=x=>has(x)?(isNaN(parseFloat(x))?x:parseFloat(x)):'',k=d=>d.id,
-g=[{s:'title',c:['Open Doors Staff Variance Tracker\n'+p.name+(pds.length==1?' | '+pds[0].label:'')]},{s:'h',c:['Payroll period',...pds.map(d=>d.label)]},{s:'dt',c:['Dates',...pds.map(rng)]}];
-p.rows.forEach(r=>g.push({s:'',c:[r.l,...pds.map(d=>nv(r.v[k(d)]))]}));
-g.push({s:'tot',c:['Total Hours',...pds.map(d=>T[k(d)].v)]},{s:'con',c:['Salary Paid / Contract Hours',...pds.map(d=>nv(p.contract[k(d)]))]},{s:'var',c:['Variance',...pds.map(d=>V[k(d)].v)]});
-pds.forEach(d=>{const t=(p.notes[k(d)]||'').trim();if(t)g.push({s:'note',c:[`Note (${d.label}): ${t}`]})});return g}
+g=[{s:'title',c:['Open Doors Staff Variance Tracker\n'+p.name+' | '+(pds.length==1?pds[0].label:'All periods')]}];
+pds.forEach((d,i)=>{if(i)g.push({s:'sp',c:['']});g.push({s:'h',c:['Payroll period',d.label]},{s:'dt',c:['Dates',rng(d)]});
+p.rows.forEach(r=>g.push({s:'',c:[r.l,nv(r.v[k(d)])]}));
+g.push({s:'tot',c:['Total Hours',T[k(d)].v]},{s:'con',c:['Salary Paid / Contract Hours',nv(p.contract[k(d)])]},{s:'var',c:['Variance',V[k(d)].v]});
+const t=(p.notes[k(d)]||'').trim();if(t)g.push({s:'note',c:['Note: '+t]})});return g}
 function go(from,to){if(!from.length)return;to.push(last);last=from.pop();S=JSON.parse(last);try{localStorage.setItem(KEY,last)}catch(e){}render()}
 const ub=()=>{$('un').disabled=!H.length;$('re').disabled=!R.length};
 function render(){ub();const pd=S.periods,sel=(id,o,v)=>{$(id).innerHTML=o.map(([a,l])=>`<option value="${q(a)}"${a===v?' selected':''}>${q(l)}</option>`).join('')};
@@ -157,8 +167,9 @@ else if(d.x=='addr'){p.rows.push({l:'New row',v:{}});save();render()}
 else if(d.x=='delr'){p.rows.splice(d.r,1);save();render()}
 else if(d.x=='dels'){if(confirm('Delete '+p.name+'?')){S.staff=S.staff.filter(x=>x!==p);save();render()}}
 else if(d.x){const pds=fp?S.periods.filter(x=>x.id==fp):S.periods;if(!pds.length)return alert('Add a payroll period first.');
-const nm=`${p.name}_${fp?pds[0].label:'All periods'}_Open Doors Staff Variance Tracker`.replace(/[^A-Za-z0-9]+/g,'_'),g=grid(p,pds);
-if(d.x=='xlsx')dl(xlsx(g,p.name),nm+'.xlsx');else{const c=cv(g);if(d.x=='png')c.toBlob(bl=>dl(bl,nm+'.png'));else pdfImg(c).then(bl=>dl(bl,nm+'.pdf'))}}});
+const nm=l=>`${p.name}_${l}_Open Doors Staff Variance Tracker`.replace(/[^A-Za-z0-9]+/g,'_');
+if(d.x=='png')pds.forEach((z,k)=>setTimeout(()=>cv(grid(p,[z])).toBlob(bl=>dl(bl,nm(z.label)+'.png')),k*700));
+else{const g=grid(p,pds),l=fp?pds[0].label:'All periods';if(d.x=='xlsx')dl(xlsx(g,p.name),nm(l)+'.xlsx');else pdfImg(cv(g)).then(bl=>dl(bl,nm(l)+'.pdf'))}}});
 render();
 if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script></body></html>
