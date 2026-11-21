@@ -4,7 +4,7 @@
 *{box-sizing:border-box}body{margin:0;font:14px Arial,sans-serif;background:#fff;color:var(--t)}
 header{background:var(--dark);color:#fff;padding:12px 14px}h1{font-size:18px;margin:0}main{padding:12px}
 select,input,textarea,button,.btn{font:inherit;color:var(--t);background:#fff;border:1px solid var(--b);border-radius:6px;padding:6px}
-button,.btn{cursor:pointer;display:inline-block}button.p{background:var(--teal);color:#fff;border-color:var(--teal)}
+button,.btn{cursor:pointer;display:inline-block}button.p,.btn.p{background:var(--teal);color:#fff;border-color:var(--teal)}
 .bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.card{border:1px solid var(--b);border-radius:10px;margin-bottom:12px;overflow:hidden}
 .hd{background:var(--dark);display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:8px}.nm{font-weight:bold;font-size:16px;flex:1;min-width:140px}
 .bd{padding:8px}.sc{overflow-x:auto}table{border-collapse:collapse;width:100%}td,th{padding:3px;text-align:left}
@@ -15,7 +15,7 @@ textarea{width:100%;min-height:50px;margin:2px 0 8px}label{font-size:12px;color:
 button:disabled{opacity:.4}.empty{padding:24px;text-align:center;color:#587}#pp{padding:10px;background:#f2f8f4}
 </style></head><body>
 <header><h1>Open Doors Staff Variance Tracker</h1></header><main>
-<div class="bar"><select id="fp"></select><select id="fs"></select><button class="p" id="addP">+ Period</button><button id="edP">Edit period</button><button class="p" id="addS">+ Staff</button><button id="un">↶ Undo</button><button id="re">↷ Redo</button></div>
+<div class="bar"><select id="fp"></select><select id="fs"></select><button class="p" id="addP">+ Period</button><button id="edP">Edit period</button><button class="p" id="addS">+ Staff</button><label class="btn p">Import Excel<input type="file" id="im" accept=".xlsx" hidden></label><button id="un">↶ Undo</button><button id="re">↷ Redo</button></div>
 <div id="pp" class="card" hidden><b>Payroll period</b><div class="bar" style="margin:8px 0 0"><input id="pl" placeholder="Label, e.g. October 2026"><input id="ps" type="text" autocomplete="off" placeholder="Start DD/MM/YYYY"><input id="pe" type="text" autocomplete="off" placeholder="End DD/MM/YYYY"><button class="p" id="psv">Save</button><button id="pcx">Cancel</button><button id="pdel" hidden>Delete period</button></div></div>
 <div id="app"></div>
 <div class="hint">Works offline and saves on this device. Every cell is editable. Total Hours and Variance calculate themselves; type a value to override (orange underline) and clear it to return to automatic. Orange cells need a look: a negative variance, or hours entered with no contract hours.</div>
@@ -31,34 +31,65 @@ cd.push(new Uint8Array(c.buffer),nb);off+=30+nb.length+d.length}
 const cl=cd.reduce((a,x)=>a+x.length,0),z=new DataView(new ArrayBuffer(22));z.setUint32(0,0x06054b50,true);z.setUint16(8,files.length,true);z.setUint16(10,files.length,true);z.setUint32(12,cl,true);z.setUint32(16,off,true);
 return new Blob([...parts,...cd,new Uint8Array(z.buffer)],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})}
 const X=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-const XF=(f,l,n)=>`<xf numFmtId="${n}" fontId="${f}" fillId="${l}" borderId="0" xfId="0" applyFont="1" applyFill="1" applyNumberFormat="1"/>`,
-ST={title:[1,1],h:[2,2],'':[0,3],dt:[0,0],con:[0,3],tot:[4,5],var:[6,7],note:[0,0]},
+const XF=(f,l,n,b,a)=>`<xf numFmtId="${n}" fontId="${f}" fillId="${l}" borderId="${b||0}" xfId="0" applyFont="1" applyFill="1" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment vertical="center"${a||''}/></xf>`,
+CE=' horizontal="center"',LE=' horizontal="left"',
+ST={title:[1,1],h:[2,2],'':[3,8],con:[3,8],dt:[0,0],tot:[4,5],var:[6,7],note:[9,9]},
 FL=c=>`<fill><patternFill patternType="solid"><fgColor rgb="FF${c}"/></patternFill></fill>`;
-function xlsx(g,name){const w=Math.max(...g.map(r=>r.c.length)),L=i=>String.fromCharCode(65+i);
-const rows=g.map((r,i)=>{const bar=['title','h','tot','var'].includes(r.s),n=bar?w:r.c.length;let o='';
-for(let j=0;j<n;j++){const v=r.c[j],ref=L(j)+(i+1),[a,b]=ST[r.s],s=typeof v=='number'?b:a;
-o+=v===''||v==null?(bar?`<c r="${ref}" s="${s}"/>`:''):typeof v=='number'?`<c r="${ref}" s="${s}"><v>${v}</v></c>`:`<c r="${ref}" s="${s}" t="inlineStr"><is><t>${X(v)}</t></is></c>`}
-return`<row r="${i+1}">${o}</row>`}).join('');
+function xlsx(g,name){const w=Math.max(...g.map(r=>r.c.length)),L=i=>String.fromCharCode(65+i),mg=[],tw=36+18*(w-1),HT={title:54,h:26,dt:22,tot:28,var:28,'':24,con:24};
+const rows=g.map((r,i)=>{const n=r.s=='note'?1:w;let o='';
+if(r.s=='title'||r.s=='note')mg.push(`<mergeCell ref="A${i+1}:${L(w-1)}${i+1}"/>`);
+for(let j=0;j<n;j++){const v=r.c[j],e=v===''||v==null,ref=L(j)+(i+1),[a,b]=ST[r.s];let s=typeof v=='number'||(e&&j)?b:a;if(j&&r.s=='h')s=10;if(j&&r.s=='dt')s=11;
+o+=e?`<c r="${ref}" s="${s}"/>`:typeof v=='number'?`<c r="${ref}" s="${s}"><v>${v}</v></c>`:`<c r="${ref}" s="${s}" t="inlineStr"><is><t xml:space="preserve">${X(v)}</t></is></c>`}
+const ht=r.s=='note'?18*Math.ceil(r.c[0].length/(tw*.85))+8:HT[r.s]||24;
+return`<row r="${i+1}" ht="${ht}" customHeight="1">${o}</row>`}).join('');
 const sn=X(name.replace(/[\\\/?*\[\]:]/g,'').slice(0,31)||'Sheet1'),NS='xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"',R='http://schemas.openxmlformats.org/officeDocument/2006/relationships',H='<?xml version="1.0" encoding="UTF-8"?>';
 return zip([['[Content_Types].xml',H+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'],
 ['_rels/.rels',H+`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${R}/officeDocument" Target="xl/workbook.xml"/></Relationships>`],
 ['xl/workbook.xml',H+`<workbook ${NS} xmlns:r="${R}"><sheets><sheet name="${sn}" sheetId="1" r:id="rId1"/></sheets></workbook>`],
 ['xl/_rels/workbook.xml.rels',H+`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${R}/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="${R}/styles" Target="styles.xml"/></Relationships>`],
-['xl/styles.xml',H+`<styleSheet ${NS}><fonts count="3"><font><sz val="10"/><name val="Arial"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Arial"/></font><font><b/><sz val="10"/><name val="Arial"/></font></fonts><fills count="6"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>${['247F80','1A9A9A','B1D5BB','EDB32E'].map(FL).join('')}</fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="8">${[XF(0,0,0),XF(1,2,0),XF(1,3,0),XF(0,0,2),XF(2,4,0),XF(2,4,2),XF(2,5,0),XF(2,5,2)].join('')}</cellXfs></styleSheet>`],
-['xl/worksheets/sheet1.xml',H+`<worksheet ${NS}><cols><col min="1" max="1" width="34" customWidth="1"/><col min="2" max="30" width="24" customWidth="1"/></cols><sheetData>${rows}</sheetData></worksheet>`]])}
-function pdf(g){const W=842,H=595,hx=h=>[1,3,5].map(i=>(parseInt(h.slice(i,i+2),16)/255).toFixed(3)).join(' '),
-C={title:'#247F80',h:'#1A9A9A',tot:'#B1D5BB',var:'#EDB32E'},E=t=>String(t).replace(/[\\()]/g,'\\$&').replace(/[^\x20-\x7e]/g,'?');
-let s='',y=H-50;const n=Math.max(1,Math.max(...g.map(r=>r.c.length))-1),cw=Math.min(110,(W-320)/n);
-const lines=g.flatMap(r=>r.s=='note'?(r.c[0].match(/.{1,120}(\s|$)/g)||['']).map((t,i)=>({s:'note',c:[(i?'   ':'')+t.trim()]})):[r]);
-for(const r of lines){if(y<40)break;const dark=r.s=='title'||r.s=='h',b=dark||r.s=='tot'||r.s=='var';
-if(C[r.s])s+=`${hx(C[r.s])} rg 40 ${y-6} ${W-80} 20 re f\n`;
-s+=`${dark?'1 g':'0 g'}\n`;
-r.c.forEach((v,j)=>{if(v===''||v==null)return;const t=typeof v=='number'?v.toFixed(2):v,x=j?280+(j-1)*cw:40;
-s+=`BT /F${b?2:1} ${r.s=='title'?13:r.s=='dt'?7:10} Tf ${x} ${y} Td (${E(t)}) Tj ET\n`});y-=r.s=='title'?28:20}
-const o=['<</Type/Catalog/Pages 2 0 R>>','<</Type/Pages/Kids[3 0 R]/Count 1>>',`<</Type/Page/Parent 2 0 R/MediaBox[0 0 ${W} ${H}]/Contents 4 0 R/Resources<</Font<</F1 5 0 R/F2 6 0 R>>>>>>`,`<</Length ${s.length}>>\nstream\n${s}endstream`,'<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>','<</Type/Font/Subtype/Type1/BaseFont/Helvetica-Bold>>'];
-let f='%PDF-1.4\n';const off=[];o.forEach((x,i)=>{off.push(f.length);f+=`${i+1} 0 obj\n${x}\nendobj\n`});const xr=f.length;
-f+=`xref\n0 ${o.length+1}\n0000000000 65535 f \n`+off.map(k=>String(k).padStart(10,'0')+' 00000 n \n').join('')+`trailer\n<</Size ${o.length+1}/Root 1 0 R>>\nstartxref\n${xr}\n%%EOF`;
-return new Blob([f],{type:'application/pdf'})}
+['xl/styles.xml',H+`<styleSheet ${NS}><numFmts count="0"/><fonts count="4"><font><sz val="12"/><name val="Arial"/></font><font><b/><sz val="12"/><color rgb="FFFFFFFF"/><name val="Arial"/></font><font><b/><sz val="12"/><name val="Arial"/></font><font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Arial"/></font></fonts><fills count="6"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>${['247F80','1A9A9A','B1D5BB','EDB32E'].map(FL).join('')}</fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border>${['left','right','top','bottom'].map(k=>`<${k} style="thin"><color rgb="FF9DB5B1"/></${k}>`).join('')}<diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="12">${[XF(0,0,0),XF(3,2,0,0,CE+' wrapText="1"'),XF(1,3,0,0,LE),XF(0,0,0,1,LE),XF(2,4,0,0,LE),XF(2,4,2,0,CE),XF(2,5,0,0,LE),XF(2,5,2,0,CE),XF(0,0,2,1,CE),XF(0,0,0,0,LE+' wrapText="1"'),XF(1,3,0,0,CE),XF(0,0,0,0,CE)].join('')}</cellXfs></styleSheet>`],
+['xl/worksheets/sheet1.xml',H+`<worksheet ${NS}><sheetViews><sheetView showGridLines="0" workbookViewId="0"/></sheetViews><cols><col min="1" max="1" width="36" customWidth="1"/><col min="2" max="${w}" width="18" customWidth="1"/></cols><sheetData>${rows}</sheetData><mergeCells count="${mg.length}">${mg.join('')}</mergeCells></worksheet>`]])}
+
+/* Image + PDF: drawn on a canvas sized exactly to the table */
+function cv(g){const sc=2,F='Arial,Helvetica,sans-serif',c=document.createElement('canvas'),x=c.getContext('2d'),P=28,f=(w,s)=>{x.font=`${w} ${s}px ${F}`},m=t=>x.measureText(String(t)).width,
+T=g[0].c[0].split('\n'),tb=g.filter(r=>r.s!='title'&&r.s!='note'),nt=g.filter(r=>r.s=='note'),n=tb[0].c.length-1;
+f('bold',17);let lw=Math.max(...tb.map(r=>m(r.c[0])))+44;
+const cw=Math.max(150,...tb.filter(r=>r.s=='h'||r.s=='dt').flatMap(r=>r.c.slice(1).map(t=>m(t)+36)));
+f('bold',22);const tw=Math.max(...T.map(m))+60;if(lw+n*cw<tw)lw=tw-n*cw;const W=lw+n*cw;
+f('normal',15);const nl=nt.flatMap(r=>{const o=[];let u='';for(const w of r.c[0].split(/\s+/)){if(u&&m(u+' '+w)>W-12){o.push(u);u=w}else u=u?u+' '+w:w}o.push(u);return o});
+const RH={h:46,dt:36,tot:48,var:48},th=T.length*30+28,H=P*2+th+tb.reduce((a,r)=>a+(RH[r.s]||42),0)+(nl.length?nl.length*24+24:0);
+c.width=(W+2*P)*sc;c.height=H*sc;x.scale(sc,sc);x.fillStyle='#fff';x.fillRect(0,0,W+2*P,H);x.textBaseline='middle';
+let y=P;x.fillStyle='#247F80';x.fillRect(P,y,W,th);x.fillStyle='#fff';x.textAlign='center';
+T.forEach((t,i)=>{f(i?'normal':'bold',i?18:22);x.fillText(t,P+W/2,y+(th-T.length*30)/2+i*30+15)});y+=th;
+const CL={h:['#1A9A9A','#fff'],dt:['#E6F1EA','#1b2a2a'],tot:['#B1D5BB','#1b2a2a'],var:['#EDB32E','#1b2a2a']};
+for(const r of tb){const h=RH[r.s]||42,[bg,fg]=CL[r.s]||['#fff','#1b2a2a'],b=r.s=='tot'||r.s=='var'||r.s=='h';
+for(let j=0;j<=n;j++){const x0=P+(j?lw+(j-1)*cw:0),w=j?cw:lw,v=r.c[j];x.fillStyle=bg;x.fillRect(x0,y,w,h);
+if(!b){x.strokeStyle='#9DB5B1';x.lineWidth=1;x.strokeRect(x0+.5,y+.5,w-1,h-1)}
+if(v!==''&&v!=null){f(b?'bold':'normal',r.s=='dt'?15:17);x.fillStyle=fg;x.textAlign=j?'center':'left';x.fillText(typeof v=='number'?v.toFixed(2):v,j?x0+w/2:x0+16,y+h/2)}}y+=h}
+if(nl.length){y+=14;f('normal',15);x.fillStyle='#2b3b3b';x.textAlign='left';nl.forEach((t,i)=>x.fillText(t,P+4,y+12+i*24))}
+return c}
+async function pdfImg(c){const E=new TextEncoder(),parts=[],off=[],d=new Uint8Array(await(await new Promise(r=>c.toBlob(r,'image/jpeg',.95))).arrayBuffer()),w=c.width,h=c.height,pw=w*.375,ph=h*.375;let n=0;
+const add=u=>{if(typeof u=='string')u=E.encode(u);parts.push(u);n+=u.length},ob=(i,s,bin)=>{off.push(n);add(`${i} 0 obj\n${s}`);if(bin){add('stream\n');add(bin);add('\nendstream')}add('\nendobj\n')};
+add('%PDF-1.4\n');ob(1,'<</Type/Catalog/Pages 2 0 R>>');ob(2,'<</Type/Pages/Kids[3 0 R]/Count 1>>');
+ob(3,`<</Type/Page/Parent 2 0 R/MediaBox[0 0 ${pw} ${ph}]/Contents 4 0 R/Resources<</XObject<</Im0 5 0 R>>>>>>`);
+const cs=`q ${pw} 0 0 ${ph} 0 0 cm /Im0 Do Q`;ob(4,`<</Length ${cs.length}>>\n`,E.encode(cs));
+ob(5,`<</Type/XObject/Subtype/Image/Width ${w}/Height ${h}/ColorSpace/DeviceRGB/BitsPerComponent 8/Filter/DCTDecode/Length ${d.length}>>\n`,d);
+const xr=n;add(`xref\n0 6\n0000000000 65535 f \n`+off.map(k=>String(k).padStart(10,'0')+' 00000 n \n').join('')+`trailer\n<</Size 6/Root 1 0 R>>\nstartxref\n${xr}\n%%EOF`);
+return new Blob(parts,{type:'application/pdf'})}
+
+/* Excel import: reads the .xlsx locally in the browser; no data lives in this code */
+const u32=(v,o)=>v.getUint32(o,true),u16=(v,o)=>v.getUint16(o,true);
+async function unz(buf){const v=new DataView(buf),u=new Uint8Array(buf),dc=new TextDecoder();let e=buf.byteLength-22;while(e>=0&&u32(v,e)!=0x06054b50)e--;if(e<0)throw 0;
+const cnt=u16(v,e+10),m={};let p=u32(v,e+16);
+for(let i=0;i<cnt;i++){const me=u16(v,p+10),cs=u32(v,p+20),nl=u16(v,p+28),xl=u16(v,p+30),cl=u16(v,p+32),lo=u32(v,p+42),nm=dc.decode(u.subarray(p+46,p+46+nl)),ds=lo+30+u16(v,lo+26)+u16(v,lo+28);
+m[nm]=async()=>{const d=u.subarray(ds,ds+cs);return dc.decode(me==0?d:await new Response(new Blob([d]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer())};p+=46+nl+xl+cl}return m}
+async function rdx(file){const z=await unz(await file.arrayBuffer()),P=s=>new DOMParser().parseFromString(s,'text/xml'),
+ss=z['xl/sharedStrings.xml']?[...P(await z['xl/sharedStrings.xml']()).getElementsByTagName('si')].map(s=>[...s.getElementsByTagName('t')].map(t=>t.textContent).join('')):[],
+wb=P(await z['xl/workbook.xml']()),rl=[...P(await z['xl/_rels/workbook.xml.rels']()).getElementsByTagName('Relationship')],out=[];
+for(const s of wb.getElementsByTagName('sheet')){const rel=rl.find(r=>r.getAttribute('Id')==s.getAttribute('r:id')),tg=rel.getAttribute('Target').replace(/^\//,''),cells={};
+for(const c of P(await z[tg.startsWith('xl/')?tg:'xl/'+tg]()).getElementsByTagName('c')){const t=c.getAttribute('t'),v=c.getElementsByTagName('v')[0],is=c.getElementsByTagName('t')[0];
+cells[c.getAttribute('r')]=t=='s'&&v?ss[+v.textContent]:t=='inlineStr'&&is?is.textContent:v?(t==null||t=='n'?parseFloat(v.textContent):v.textContent):''}
+out.push({name:s.getAttribute('name'),cells})}return out}
 
 const KEY='ccs_variance_tracker_v1',$=id=>document.getElementById(id),MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
 let S;try{S=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){}S=S||{periods:[],staff:[]};
@@ -68,10 +99,26 @@ const save=()=>{const now=JSON.stringify(S);if(now!==last){H.push(last);if(H.len
 q=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'),pad=n=>String(n).padStart(2,'0'),
 iso=s=>{const m=/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(String(s).trim());if(!m)return'';const d=new Date(+m[3],m[2]-1,+m[1]);return d.getDate()==+m[1]&&d.getMonth()==m[2]-1?`${m[3]}-${pad(m[2])}-${pad(m[1])}`:''},
 fmt=i=>i?i.split('-').reverse().join('/'):'',rng=d=>fmt(d.start)+' to '+fmt(d.end);
+async function imp(file){try{const sh=await rdx(file),MO=MN.map(m=>m.slice(0,3).toLowerCase()),DEF={sep:['2026-08-20','2026-09-13'],oct:['2026-09-14','2026-10-11']},pf={},CL=i=>String.fromCharCode(65+i);let ns=0;const used=new Set();
+const per=mk=>{if(mk in pf)return pf[mk];let p=S.periods.find(d=>d.label.slice(0,3).toLowerCase()==mk);
+if(!p){let[a,b]=DEF[mk]||[];if(!a){a=iso(prompt('Start date for the '+mk.toUpperCase()+' period (DD/MM/YYYY)'));b=a&&iso(prompt('End date for the '+mk.toUpperCase()+' period (DD/MM/YYYY)'))}
+if(!a||!b)return pf[mk]=null;p={id:Date.now()+S.periods.length,label:MN[MO.indexOf(mk)]+' '+b.slice(0,4),start:a,end:b};S.periods.push(p)}return pf[mk]=p};
+for(const s of sh){const c=s.cells,nm=String(c.A1||s.name).trim();let hr=0,cols=[];
+for(let r=1;r<=5&&!hr;r++){for(let j=1;j<20;j++){const t=String(c[CL(j)+r]||'').trim().slice(0,3).toLowerCase();if(MO.includes(t))cols.push([j,t])}if(cols.length)hr=r}
+if(!hr)continue;let st=S.staff.find(z=>z.name.toLowerCase()==nm.toLowerCase());
+if(!st){st={id:Date.now()+S.staff.length+ns,name:nm,rows:[],contract:{},ov:{total:{},variance:{}},notes:{}};S.staff.push(st)}ns++;
+cols=cols.map(([j,mk])=>[j,per(mk)]).filter(z=>z[1]);cols.forEach(z=>used.add(z[1].id));
+for(let r=1;r<=60;r++){const lab=String(c['A'+r]||'').trim();if(r<hr){if(r==1)for(const[j,p]of cols){const t=c[CL(j)+1];if(typeof t=='string'&&t.trim())st.notes[p.id]=t.trim()}continue}
+if(r==hr||!lab||/^(total hours|variance)/i.test(lab))continue;
+if(/^salary/i.test(lab)){for(const[j,p]of cols)if(typeof c[CL(j)+r]=='number')st.contract[p.id]=String(r2(c[CL(j)+r]));continue}
+let row=st.rows.find(z=>z.l.trim().toLowerCase()==lab.toLowerCase());if(!row){row={l:lab,v:{}};st.rows.push(row)}
+for(const[j,p]of cols){const v=c[CL(j)+r];row.v[p.id]=typeof v=='number'?String(r2(v)):''}}}
+if(!ns)return alert('No staff sheets with month headings (Sep, Oct...) were found in this file.');
+S.periods.sort((a,b)=>a.start<b.start?-1:1);fp=fs='';save();render();alert('Imported '+ns+' staff into '+used.size+' period(s). Use Undo if this is not what you expected.')}catch(e){alert('Could not read this Excel file. Please use the .xlsx version.')}}
 function calc(p){const T={},V={};let pv=0;S.periods.forEach(d=>{const k=d.id,a=r2(p.rows.reduce((s,r)=>s+num(r.v[k]),0)),ot=p.ov.total[k],t=has(ot)?num(ot):a;T[k]={v:t,o:has(ot)};
 const av=t===0?0:r2(pv+t-num(p.contract[k])),ov=p.ov.variance[k];V[k]={v:has(ov)?num(ov):av,o:has(ov)};pv=V[k].v});return{T,V}}
 function grid(p,pds){const{T,V}=calc(p),nv=x=>has(x)?(isNaN(parseFloat(x))?x:parseFloat(x)):'',k=d=>d.id,
-g=[{s:'title',c:['Open Doors Staff Variance Tracker: '+p.name+(pds.length==1?'   '+pds[0].label:'')]},{s:'h',c:['Payroll period',...pds.map(d=>d.label)]},{s:'dt',c:['Dates',...pds.map(rng)]}];
+g=[{s:'title',c:['Open Doors Staff Variance Tracker\n'+p.name+(pds.length==1?' | '+pds[0].label:'')]},{s:'h',c:['Payroll period',...pds.map(d=>d.label)]},{s:'dt',c:['Dates',...pds.map(rng)]}];
 p.rows.forEach(r=>g.push({s:'',c:[r.l,...pds.map(d=>nv(r.v[k(d)]))]}));
 g.push({s:'tot',c:['Total Hours',...pds.map(d=>T[k(d)].v)]},{s:'con',c:['Salary Paid / Contract Hours',...pds.map(d=>nv(p.contract[k(d)]))]},{s:'var',c:['Variance',...pds.map(d=>V[k(d)].v)]});
 pds.forEach(d=>{const t=(p.notes[k(d)]||'').trim();if(t)g.push({s:'note',c:[`Note (${d.label}): ${t}`]})});return g}
@@ -81,16 +128,17 @@ function render(){ub();const pd=S.periods,sel=(id,o,v)=>{$(id).innerHTML=o.map((
 if(fp&&!pd.some(d=>d.id==fp))fp='';
 sel('fp',[['','All periods'],...pd.map(d=>[String(d.id),`${d.label} (${rng(d)})`])],fp);sel('fs',[['','All staff'],...S.staff.map(p=>[String(p.id),p.name])],fs);
 const sh=fp?pd.filter(d=>d.id==fp):pd;
-if(!S.staff.length||!pd.length){$('app').innerHTML=`<div class="empty">${!pd.length?'Start by adding a payroll period, then add your staff.':'Now add your staff.'}</div>`;return}
+if(!S.staff.length||!pd.length){$('app').innerHTML=`<div class="empty">${!pd.length?'Start by adding a payroll period, then add your staff, or use Import Excel.':'Now add your staff.'}</div>`;return}
 $('app').innerHTML=S.staff.filter(p=>!fs||String(p.id)==fs).map(p=>{const{T,V}=calc(p),D=`data-p="${p.id}"`,
 inp=(a,m,v,c,r)=>`<td><input inputmode="decimal" class="${c||''}" data-a="${a}" ${D} data-m="${m}" ${r!==undefined?`data-r="${r}"`:''} value="${q(v)}"></td>`;
-return`<div class="card"><div class="hd"><input class="nm" data-a="n" ${D} value="${q(p.name)}"><button class="p" data-x="xlsx" ${D}>Excel</button><button class="p" data-x="pdf" ${D}>PDF</button><button data-x="dels" ${D}>Delete</button></div><div class="bd"><div class="sc"><table><tr><th></th>${sh.map(d=>`<th>${q(d.label)}<br><small>${rng(d)}</small></th>`).join('')}<th></th></tr>`+
+return`<div class="card"><div class="hd"><input class="nm" data-a="n" ${D} value="${q(p.name)}"><button class="p" data-x="xlsx" ${D}>Excel</button><button class="p" data-x="pdf" ${D}>PDF</button><button class="p" data-x="png" ${D}>Image</button><button data-x="dels" ${D}>Delete</button></div><div class="bd"><div class="sc"><table><tr><th></th>${sh.map(d=>`<th>${q(d.label)}<br><small>${rng(d)}</small></th>`).join('')}<th></th></tr>`+
 p.rows.map((r,i)=>`<tr><td><input class="lb" data-a="l" ${D} data-r="${i}" value="${q(r.l)}"></td>${sh.map(d=>inp('v',d.id,r.v[d.id]||'','',i)).join('')}<td><button class="x" data-x="delr" ${D} data-r="${i}">×</button></td></tr>`).join('')+
 `<tr class="t"><td>Total Hours</td>${sh.map(d=>inp('t',d.id,T[d.id].v,T[d.id].o?'ov':'')).join('')}</tr><tr><td>Salary Paid / Contract Hours</td>${sh.map(d=>inp('c',d.id,p.contract[d.id]||'',T[d.id].v>0&&!has(p.contract[d.id])?'al':'')).join('')}</tr><tr class="v"><td>Variance</td>${sh.map(d=>inp('va',d.id,V[d.id].v,(V[d.id].o?'ov ':'')+(V[d.id].v<0?'al':''))).join('')}</tr></table></div>
 <button data-x="addr" ${D}>+ Row</button><div style="margin-top:8px">${sh.map(d=>`<label>Note: ${q(d.label)} (${rng(d)})</label><textarea data-a="pn" ${D} data-m="${d.id}" placeholder="Write a short note for this period">${q(p.notes[d.id])}</textarea>`).join('')}</div></div></div>`}).join('')}
 document.addEventListener('change',e=>{const t=e.target,d=t.dataset;if(d.a){const p=S.staff.find(x=>x.id==d.p),v=t.value.trim();
 if(d.a=='v')p.rows[d.r].v[d.m]=v;else if(d.a=='c')p.contract[d.m]=v;else if(d.a=='t')p.ov.total[d.m]=v;else if(d.a=='va')p.ov.variance[d.m]=v;else if(d.a=='l')p.rows[d.r].l=v;else if(d.a=='n')p.name=v||p.name;else p.notes[d.m]=t.value;save();render()}
 else if(t.id=='fp'){fp=t.value;render()}else if(t.id=='fs'){fs=t.value;render()}
+else if(t.id=='im'&&t.files[0]){imp(t.files[0]).finally(()=>{t.value=''})}
 else if(t.id=='rs'&&t.files[0]){const f=new FileReader();f.onload=()=>{try{const j=JSON.parse(f.result);if(!Array.isArray(j.periods)||!Array.isArray(j.staff))throw 0;if(confirm('Replace all current data with this backup?')){S=j;save();fp=fs='';render()}}catch(x){alert('This is not a valid backup file.')}t.value=''};f.readAsText(t.files[0])}});
 function dl(b,n){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
 function openP(id){ep=id;const d=S.periods.find(x=>x.id==id)||{label:'',start:'',end:''};$('pl').value=d.label;$('ps').value=fmt(d.start);$('pe').value=fmt(d.end);$('pdel').hidden=!id;$('pp').hidden=false}
@@ -109,7 +157,8 @@ else if(d.x=='addr'){p.rows.push({l:'New row',v:{}});save();render()}
 else if(d.x=='delr'){p.rows.splice(d.r,1);save();render()}
 else if(d.x=='dels'){if(confirm('Delete '+p.name+'?')){S.staff=S.staff.filter(x=>x!==p);save();render()}}
 else if(d.x){const pds=fp?S.periods.filter(x=>x.id==fp):S.periods;if(!pds.length)return alert('Add a payroll period first.');
-dl(d.x=='xlsx'?xlsx(grid(p,pds),p.name):pdf(grid(p,pds)),`${p.name}_${fp?pds[0].label:'All periods'}_Open Doors Staff Variance Tracker`.replace(/[^A-Za-z0-9]+/g,'_')+'.'+d.x)}});
+const nm=`${p.name}_${fp?pds[0].label:'All periods'}_Open Doors Staff Variance Tracker`.replace(/[^A-Za-z0-9]+/g,'_'),g=grid(p,pds);
+if(d.x=='xlsx')dl(xlsx(g,p.name),nm+'.xlsx');else{const c=cv(g);if(d.x=='png')c.toBlob(bl=>dl(bl,nm+'.png'));else pdfImg(c).then(bl=>dl(bl,nm+'.pdf'))}}});
 render();
 if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script></body></html>
