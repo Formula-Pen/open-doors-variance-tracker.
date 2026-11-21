@@ -7,7 +7,7 @@ select,input,textarea,button,.btn{font:inherit;color:var(--t);background:#fff;bo
 button,.btn{cursor:pointer;display:inline-block}button.p,.btn.p{background:var(--teal);color:#fff;border-color:var(--teal)}
 .bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.card{border:1px solid var(--b);border-radius:10px;margin-bottom:12px;overflow:hidden}
 .hd{background:var(--dark);display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:8px}.nm{font-weight:bold;font-size:16px;flex:1;min-width:140px}
-.bd{padding:8px}.sc{overflow-x:auto}table{border-collapse:collapse;width:100%}td,th{padding:3px;text-align:left}
+.bd{padding:8px}.sc{overflow:auto;max-height:70vh}table{border-collapse:collapse;width:100%}td,th{padding:3px;text-align:left}
 th{background:var(--teal);color:#fff;font-weight:bold;white-space:nowrap}th small{font-weight:normal}td input{width:90px}td input.lb{width:170px}
 tr.t td{background:var(--sage);font-weight:bold}tr.v td{background:var(--gold);font-weight:bold}tr.t input,tr.v input{background:transparent}
 input.ov{box-shadow:inset 0 -3px var(--org)}input.al{background:var(--org)!important}.x{padding:2px 7px}
@@ -16,6 +16,12 @@ button:disabled{opacity:.4}.empty{padding:24px;text-align:center;color:#587}#pp{
 table th:nth-child(n+3),table td:nth-child(n+3){border-left:5px solid #fff}
 table th,table td{padding:3px 6px}
 th small{display:block;margin-top:2px}
+th{position:sticky;top:0;z-index:2}
+td:first-child,th:first-child{position:sticky;left:0;box-shadow:4px 0 5px -3px rgba(0,0,0,.25)}
+td:first-child{z-index:1;background:#fff}
+th:first-child{z-index:3}
+td input.lb{width:130px}
+.bulk{align-items:center;background:#f2f8f4;border:1px solid var(--b);border-radius:10px;padding:8px 10px}.bulk b{flex:1;min-width:160px}
 </style></head><body>
 <header><h1>Open Doors Staff Variance Tracker</h1></header><main>
 <div class="bar"><select id="fp"></select><select id="fs"></select><button class="p" id="addP">+ Period</button><button id="edP">Edit period</button><button class="p" id="addS">+ Staff</button><label class="btn p">Import Excel<input type="file" id="im" accept=".xlsx" hidden></label><button id="un">↶ Undo</button><button id="re">↷ Redo</button></div>
@@ -38,20 +44,24 @@ const XF=(f,l,n,b,a)=>`<xf numFmtId="${n}" fontId="${f}" fillId="${l}" borderId=
 CE=' horizontal="center"',LE=' horizontal="left"',
 ST={title:[1,1],h:[2,2],'':[3,8],con:[3,8],dt:[0,0],tot:[4,5],var:[6,7],note:[9,9],sp:[0,0]},
 FL=c=>`<fill><patternFill patternType="solid"><fgColor rgb="FF${c}"/></patternFill></fill>`;
-function xlsx(g,name){const w=Math.max(...g.map(r=>r.c.length)),L=i=>String.fromCharCode(65+i),mg=[],tw=36+24*(w-1),HT={title:54,h:26,dt:22,tot:28,var:28,'':24,con:24,sp:16};
+/* sheets = [[sheetName, grid], ...]  one sheet per staff member, months stacked vertically */
+function xlsx(sheets){const L=i=>String.fromCharCode(65+i),HT={title:54,h:26,dt:22,tot:28,var:28,'':24,con:24,sp:16},
+NS='xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"',R='http://schemas.openxmlformats.org/officeDocument/2006/relationships',H='<?xml version="1.0" encoding="UTF-8"?>',
+sx=g=>{const w=Math.max(...g.map(r=>r.c.length)),mg=[],tw=36+24*(w-1);
 const rows=g.map((r,i)=>{const n=r.s=='note'?1:w;let o='';
 if(r.s=='title'||r.s=='note')mg.push(`<mergeCell ref="A${i+1}:${L(w-1)}${i+1}"/>`);
 for(let j=0;j<n;j++){const v=r.c[j],e=v===''||v==null,ref=L(j)+(i+1),[a,b]=ST[r.s];let s=typeof v=='number'||(e&&j)?b:a;if(j&&r.s=='h')s=10;if(j&&r.s=='dt')s=11;
 o+=e?`<c r="${ref}" s="${s}"/>`:typeof v=='number'?`<c r="${ref}" s="${s}"><v>${v}</v></c>`:`<c r="${ref}" s="${s}" t="inlineStr"><is><t xml:space="preserve">${X(v)}</t></is></c>`}
 const ht=r.s=='note'?18*Math.ceil(r.c[0].length/(tw*.85))+8:HT[r.s]||24;
 return`<row r="${i+1}" ht="${ht}" customHeight="1">${o}</row>`}).join('');
-const sn=X(name.replace(/[\\\/?*\[\]:]/g,'').slice(0,31)||'Sheet1'),NS='xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"',R='http://schemas.openxmlformats.org/officeDocument/2006/relationships',H='<?xml version="1.0" encoding="UTF-8"?>';
-return zip([['[Content_Types].xml',H+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'],
+return H+`<worksheet ${NS}><sheetViews><sheetView showGridLines="0" workbookViewId="0"/></sheetViews><cols><col min="1" max="1" width="36" customWidth="1"/><col min="2" max="${w}" width="24" customWidth="1"/></cols><sheetData>${rows}</sheetData><mergeCells count="${mg.length}">${mg.join('')}</mergeCells></worksheet>`},
+used=new Set(),nm=sheets.map(([n])=>{const b=X(String(n).replace(/[\\\/?*\[\]:"']/g,'').slice(0,28)||'Sheet');let s=b,i=2;while(used.has(s.toLowerCase()))s=b+' '+i++;used.add(s.toLowerCase());return s}),N=sheets.length;
+return zip([['[Content_Types].xml',H+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'+sheets.map((_,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')+'<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'],
 ['_rels/.rels',H+`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${R}/officeDocument" Target="xl/workbook.xml"/></Relationships>`],
-['xl/workbook.xml',H+`<workbook ${NS} xmlns:r="${R}"><sheets><sheet name="${sn}" sheetId="1" r:id="rId1"/></sheets></workbook>`],
-['xl/_rels/workbook.xml.rels',H+`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${R}/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="${R}/styles" Target="styles.xml"/></Relationships>`],
+['xl/workbook.xml',H+`<workbook ${NS} xmlns:r="${R}"><sheets>${nm.map((n,i)=>`<sheet name="${n}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('')}</sheets></workbook>`],
+['xl/_rels/workbook.xml.rels',H+`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((_,i)=>`<Relationship Id="rId${i+1}" Type="${R}/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')}<Relationship Id="rId${N+1}" Type="${R}/styles" Target="styles.xml"/></Relationships>`],
 ['xl/styles.xml',H+`<styleSheet ${NS}><numFmts count="0"/><fonts count="4"><font><sz val="12"/><name val="Arial"/></font><font><b/><sz val="12"/><color rgb="FFFFFFFF"/><name val="Arial"/></font><font><b/><sz val="12"/><name val="Arial"/></font><font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Arial"/></font></fonts><fills count="6"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>${['247F80','1A9A9A','B1D5BB','EDB32E'].map(FL).join('')}</fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border>${['left','right','top','bottom'].map(k=>`<${k} style="thin"><color rgb="FF9DB5B1"/></${k}>`).join('')}<diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="12">${[XF(0,0,0),XF(3,2,0,0,CE+' wrapText="1"'),XF(1,3,0,0,LE),XF(0,0,0,1,LE),XF(2,4,0,0,LE),XF(2,4,2,0,CE),XF(2,5,0,0,LE),XF(2,5,2,0,CE),XF(0,0,2,1,CE),XF(0,0,0,0,LE+' wrapText="1"'),XF(1,3,0,0,CE),XF(0,0,0,0,CE)].join('')}</cellXfs></styleSheet>`],
-['xl/worksheets/sheet1.xml',H+`<worksheet ${NS}><sheetViews><sheetView showGridLines="0" workbookViewId="0"/></sheetViews><cols><col min="1" max="1" width="36" customWidth="1"/><col min="2" max="${w}" width="24" customWidth="1"/></cols><sheetData>${rows}</sheetData><mergeCells count="${mg.length}">${mg.join('')}</mergeCells></worksheet>`]])}
+...sheets.map((s,i)=>['xl/worksheets/sheet'+(i+1)+'.xml',sx(s[1])])])}
 
 /* Image + PDF: drawn on a canvas sized exactly to the content (months stacked vertically) */
 function cv(g){const sc=2,F='Arial,Helvetica,sans-serif',c=document.createElement('canvas'),x=c.getContext('2d'),P=28,f=(w,s)=>{x.font=`${w} ${s}px ${F}`},m=t=>x.measureText(String(t)).width,
@@ -75,13 +85,16 @@ for(let j=0;j<=1;j++){const x0=P+(j?lw:0),w=j?cw:lw,v=r.c[j];x.fillStyle=bg;x.fi
 if(!b){x.strokeStyle='#9DB5B1';x.lineWidth=1;x.strokeRect(x0+.5,y+.5,w-1,h-1)}
 if(v!==''&&v!=null){f(b?'bold':'normal',r.s=='dt'?15:17);x.fillStyle=fg;x.textAlign=j?'center':'left';x.fillText(typeof v=='number'?v.toFixed(2):v,j?x0+w/2:x0+16,y+h/2)}}y+=h}
 return c}
-async function pdfImg(c){const E=new TextEncoder(),parts=[],off=[],d=new Uint8Array(await(await new Promise(r=>c.toBlob(r,'image/jpeg',.95))).arrayBuffer()),w=c.width,h=c.height,pw=w*.375,ph=h*.375;let n=0;
-const add=u=>{if(typeof u=='string')u=E.encode(u);parts.push(u);n+=u.length},ob=(i,s,bin)=>{off.push(n);add(`${i} 0 obj\n${s}`);if(bin){add('stream\n');add(bin);add('\nendstream')}add('\nendobj\n')};
-add('%PDF-1.4\n');ob(1,'<</Type/Catalog/Pages 2 0 R>>');ob(2,'<</Type/Pages/Kids[3 0 R]/Count 1>>');
-ob(3,`<</Type/Page/Parent 2 0 R/MediaBox[0 0 ${pw} ${ph}]/Contents 4 0 R/Resources<</XObject<</Im0 5 0 R>>>>>>`);
-const cs=`q ${pw} 0 0 ${ph} 0 0 cm /Im0 Do Q`;ob(4,`<</Length ${cs.length}>>\n`,E.encode(cs));
-ob(5,`<</Type/XObject/Subtype/Image/Width ${w}/Height ${h}/ColorSpace/DeviceRGB/BitsPerComponent 8/Filter/DCTDecode/Length ${d.length}>>\n`,d);
-const xr=n;add(`xref\n0 6\n0000000000 65535 f \n`+off.map(k=>String(k).padStart(10,'0')+' 00000 n \n').join('')+`trailer\n<</Size 6/Root 1 0 R>>\nstartxref\n${xr}\n%%EOF`);
+/* cs = array of canvases; one PDF page per canvas, each page sized to its content */
+async function pdfImg(cs){const E=new TextEncoder(),parts=[],off=[],N=cs.length,imgs=[];let n=0;
+for(const c of cs)imgs.push(new Uint8Array(await(await new Promise(r=>c.toBlob(r,'image/jpeg',.95))).arrayBuffer()));
+const add=u=>{if(typeof u=='string')u=E.encode(u);parts.push(u);n+=u.length},ob=(i,s,bin)=>{off[i]=n;add(`${i} 0 obj\n${s}`);if(bin){add('stream\n');add(bin);add('\nendstream')}add('\nendobj\n')};
+add('%PDF-1.4\n');ob(1,'<</Type/Catalog/Pages 2 0 R>>');ob(2,`<</Type/Pages/Kids[${cs.map((_,i)=>`${3+i*3} 0 R`).join(' ')}]/Count ${N}>>`);
+cs.forEach((c,i)=>{const b=3+i*3,pw=c.width*.375,ph=c.height*.375,t=`q ${pw} 0 0 ${ph} 0 0 cm /Im0 Do Q`;
+ob(b,`<</Type/Page/Parent 2 0 R/MediaBox[0 0 ${pw} ${ph}]/Contents ${b+1} 0 R/Resources<</XObject<</Im0 ${b+2} 0 R>>>>>>`);
+ob(b+1,`<</Length ${t.length}>>\n`,E.encode(t));
+ob(b+2,`<</Type/XObject/Subtype/Image/Width ${c.width}/Height ${c.height}/ColorSpace/DeviceRGB/BitsPerComponent 8/Filter/DCTDecode/Length ${imgs[i].length}>>\n`,imgs[i])});
+const xr=n,T=3+N*3;add(`xref\n0 ${T}\n0000000000 65535 f \n`+Array.from({length:T-1},(_,k)=>String(off[k+1]).padStart(10,'0')+' 00000 n \n').join('')+`trailer\n<</Size ${T}/Root 1 0 R>>\nstartxref\n${xr}\n%%EOF`);
 return new Blob(parts,{type:'application/pdf'})}
 
 /* Excel import: reads the .xlsx locally in the browser; only months that have numbers are imported */
@@ -139,7 +152,8 @@ if(fp&&!pd.some(d=>d.id==fp))fp='';
 sel('fp',[['','All periods'],...pd.map(d=>[String(d.id),`${d.label} (${rng(d)})`])],fp);sel('fs',[['','All staff'],...S.staff.map(p=>[String(p.id),p.name])],fs);
 const sh=fp?pd.filter(d=>d.id==fp):pd;
 if(!S.staff.length||!pd.length){$('app').innerHTML=`<div class="empty">${!pd.length?'Start by adding a payroll period, then add your staff, or use Import Excel.':'Now add your staff.'}</div>`;return}
-$('app').innerHTML=S.staff.filter(p=>!fs||String(p.id)==fs).map(p=>{const{T,V}=calc(p),D=`data-p="${p.id}"`,
+const vs=S.staff.filter(p=>!fs||String(p.id)==fs),bulk=`<div class="bar bulk"><b>Download ${vs.length} staff · ${fp?q(sh[0].label):'all periods'}</b><button class="p" data-x="allxlsx">Excel (all)</button><button class="p" data-x="allpdf">PDF (all)</button></div>`;
+$('app').innerHTML=bulk+vs.map(p=>{const{T,V}=calc(p),D=`data-p="${p.id}"`,
 inp=(a,m,v,c,r)=>`<td><input inputmode="decimal" class="${c||''}" data-a="${a}" ${D} data-m="${m}" ${r!==undefined?`data-r="${r}"`:''} value="${q(v)}"></td>`;
 return`<div class="card"><div class="hd"><input class="nm" data-a="n" ${D} value="${q(p.name)}"><button class="p" data-x="xlsx" ${D}>Excel</button><button class="p" data-x="pdf" ${D}>PDF</button><button class="p" data-x="png" ${D}>Image</button><button data-x="dels" ${D}>Delete</button></div><div class="bd"><div class="sc"><table><tr><th></th>${sh.map(d=>`<th>${q(d.label)}<br><small>${rng(d)}</small></th>`).join('')}<th></th></tr>`+
 p.rows.map((r,i)=>`<tr><td><input class="lb" data-a="l" ${D} data-r="${i}" value="${q(r.l)}"></td>${sh.map(d=>inp('v',d.id,r.v[d.id]||'','',i)).join('')}<td><button class="x" data-x="delr" ${D} data-r="${i}">×</button></td></tr>`).join('')+
@@ -166,10 +180,13 @@ else if(i=='clr'){if(confirm('Delete ALL staff, periods and hours from this devi
 else if(d.x=='addr'){p.rows.push({l:'New row',v:{}});save();render()}
 else if(d.x=='delr'){p.rows.splice(d.r,1);save();render()}
 else if(d.x=='dels'){if(confirm('Delete '+p.name+'?')){S.staff=S.staff.filter(x=>x!==p);save();render()}}
+else if(d.x=='allxlsx'||d.x=='allpdf'){const pds=fp?S.periods.filter(x=>x.id==fp):S.periods,sl=S.staff.filter(x=>!fs||String(x.id)==fs);if(!pds.length||!sl.length)return alert('Add a payroll period and staff first.');
+const n=((fs?sl[0].name:'All staff')+'_'+(fp?pds[0].label:'All periods')+'_Open Doors Staff Variance Tracker').replace(/[^A-Za-z0-9]+/g,'_');
+if(d.x=='allxlsx')dl(xlsx(sl.map(x=>[x.name,grid(x,pds)])),n+'.xlsx');else pdfImg(sl.map(x=>cv(grid(x,pds)))).then(bl=>dl(bl,n+'.pdf'))}
 else if(d.x){const pds=fp?S.periods.filter(x=>x.id==fp):S.periods;if(!pds.length)return alert('Add a payroll period first.');
 const nm=l=>`${p.name}_${l}_Open Doors Staff Variance Tracker`.replace(/[^A-Za-z0-9]+/g,'_');
 if(d.x=='png')pds.forEach((z,k)=>setTimeout(()=>cv(grid(p,[z])).toBlob(bl=>dl(bl,nm(z.label)+'.png')),k*700));
-else{const g=grid(p,pds),l=fp?pds[0].label:'All periods';if(d.x=='xlsx')dl(xlsx(g,p.name),nm(l)+'.xlsx');else pdfImg(cv(g)).then(bl=>dl(bl,nm(l)+'.pdf'))}}});
+else{const g=grid(p,pds),l=fp?pds[0].label:'All periods';if(d.x=='xlsx')dl(xlsx([[p.name,g]]),nm(l)+'.xlsx');else pdfImg([cv(g)]).then(bl=>dl(bl,nm(l)+'.pdf'))}}});
 render();
 if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script></body></html>
